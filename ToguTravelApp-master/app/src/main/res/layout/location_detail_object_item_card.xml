@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="16dp"
+    android:layout_marginBottom="8dp"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
 
@@ -51,6 +51,7 @@
                 android:textColor="@color/black"
                 android:text="@string/lorem_ipsum_medium"
                 android:layout_marginStart="116dp"
+                android:maxLines="3"
                 app:layout_constraintStart_toEndOf="@id/location_detail_object_img"
                 app:layout_constraintTop_toBottomOf="@id/location_detail_object_title"/>
 

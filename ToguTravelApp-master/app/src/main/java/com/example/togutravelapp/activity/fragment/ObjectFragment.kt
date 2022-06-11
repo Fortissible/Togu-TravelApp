@@ -6,18 +6,25 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.togutravelapp.R
 import com.example.togutravelapp.activity.DetailObjectActivity
 import com.example.togutravelapp.adapter.ListObjectAdapter
 import com.example.togutravelapp.data.DummyObjectData
+import com.example.togutravelapp.data.ObjectWisataResponseItem
 import com.example.togutravelapp.databinding.FragmentObjectBinding
+import com.example.togutravelapp.viewmodel.ObjectListViewModel
+import com.example.togutravelapp.viewmodel.ViewModelFactory
 
 class ObjectFragment : Fragment() {
     private var _binding: FragmentObjectBinding? = null
     private val binding get() = _binding!!
     private lateinit var objectRv : RecyclerView
+    private val listObjectViewModel : ObjectListViewModel by viewModels {
+        ViewModelFactory.getInstance(requireContext())
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -32,7 +39,11 @@ class ObjectFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         objectRv = binding.locationDetailObjectRv
         objectRv.setHasFixedSize(true)
-        setObjectData()
+
+        listObjectViewModel.getObjetWisata()
+        listObjectViewModel.objectWisata.observe(requireActivity()){
+            setObjectData(it)
+        }
     }
 
     override fun onDestroyView() {
@@ -40,34 +51,16 @@ class ObjectFragment : Fragment() {
         _binding = null
     }
 
-    private fun setObjectData(){
-        val dummyListObjectData = getDummyListObjectData()
-        val adapter = ListObjectAdapter(dummyListObjectData)
-        objectRv.layoutManager = LinearLayoutManager(requireActivity())
+    private fun setObjectData(result : List<ObjectWisataResponseItem>){
+        objectRv.layoutManager = LinearLayoutManager(requireContext())
+        val adapter = ListObjectAdapter(result)
         objectRv.adapter = adapter
         adapter.setOnItemClickCallback(object : ListObjectAdapter.OnItemClickCallback{
-            override fun onItemClicked(data: DummyObjectData) {
+            override fun onItemClicked(data: ObjectWisataResponseItem) {
                 val intentToObjectDetail = Intent(requireActivity(),DetailObjectActivity::class.java)
                 intentToObjectDetail.putExtra(DetailObjectActivity.EXTRA_DETAIL_OBJECT,data)
                 startActivity(intentToObjectDetail)
             }
         })
-    }
-
-    private fun getDummyListObjectData():List<DummyObjectData>{
-        val objectTitleList = resources.getStringArray(R.array.object_title)
-        val objectDescList = resources.getStringArray(R.array.object_desc)
-        val objectImageURLList = resources.getStringArray(R.array.object_url)
-        val listObject = ArrayList<DummyObjectData>()
-        for (i in objectTitleList.indices){
-            listObject.add(
-                DummyObjectData(
-                    objectTitle = objectTitleList[i],
-                    objectDesc = objectDescList[i],
-                    objectUrl = objectImageURLList[i]
-                )
-            )
-        }
-        return listObject
     }
 }

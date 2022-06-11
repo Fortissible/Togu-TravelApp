@@ -2,10 +2,12 @@ package com.example.togutravelapp.activity.fragment
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.widget.SearchView
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -13,7 +15,11 @@ import com.example.togutravelapp.R
 import com.example.togutravelapp.activity.ChatListActivity
 import com.example.togutravelapp.adapter.ListTourGuideAdapter
 import com.example.togutravelapp.data.DummyTourGuideData
+import com.example.togutravelapp.data.TourguideItem
+import com.example.togutravelapp.data.repository.UserRepository
 import com.example.togutravelapp.databinding.FragmentListTourGuideBinding
+import com.example.togutravelapp.viewmodel.TourGuidesViewModel
+import com.example.togutravelapp.viewmodel.ViewModelFactory
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
@@ -25,8 +31,12 @@ class ListTourGuideFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var rvTogu: RecyclerView
     private lateinit var profile : CircleImageView
+    private lateinit var searchBar : SearchView
     private lateinit var auth : FirebaseAuth
     private lateinit var msgButton : FloatingActionButton
+    private val tourGuidesViewModel : TourGuidesViewModel by viewModels {
+        ViewModelFactory.getInstance(requireContext())
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -40,17 +50,38 @@ class ListTourGuideFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         profile = binding.listToguProfile
         auth = Firebase.auth
+        val repo = UserRepository(requireContext())
+        if (auth.currentUser != null){
+            val imageUri = auth.currentUser!!.photoUrl.toString()
+            setUserProfileImage(imageUri)
+        } else {
+            val imageUri = repo.getUserProfileImage().toString()
+            setUserProfileImage(imageUri)
+        }
 
-        Glide.with(this)
-            .load(auth.currentUser!!.photoUrl)
-            .centerCrop()
-            .into(profile)
         msgButton = binding.chatListButton
         msgButton.setOnClickListener {
             intentToMessageActivity()
         }
         rvTogu = binding.rvTogu
         rvTogu.setHasFixedSize(true)
+
+        tourGuidesViewModel.findTourGuides()
+        tourGuidesViewModel.tourGuides.observe(requireActivity()){
+            if (!it.isNullOrEmpty()) setToguData(it)
+        }
+
+        searchBar = binding.searchView
+        searchBar.setOnQueryTextListener(object:SearchView.OnQueryTextListener{
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                tourGuidesViewModel.findTourGuides(query)
+                return true
+            }
+            override fun onQueryTextChange(newText: String?): Boolean {
+                return false
+            }
+
+        })
 
         profile.setOnClickListener {
             val fragment = parentFragmentManager.findFragmentByTag(ProfileFragment::class.java.simpleName)
@@ -62,8 +93,6 @@ class ListTourGuideFragment : Fragment() {
                     .commit()
             }
         }
-
-        setToguData()
     }
 
     override fun onDestroyView() {
@@ -71,18 +100,19 @@ class ListTourGuideFragment : Fragment() {
         _binding = null
     }
 
-    private fun setToguData(){
-        val dummyListTogu = getDummyToguData()
-        val adapter = ListTourGuideAdapter(dummyListTogu)
+    private fun setToguData(data : List<TourguideItem>){
+        val adapter = ListTourGuideAdapter(data)
         rvTogu.layoutManager = GridLayoutManager(requireContext(),2)
         rvTogu.adapter = adapter
         adapter.setOnItemClickCallback(object : ListTourGuideAdapter.OnItemClickCallback{
-            override fun onItemClicked(data: DummyTourGuideData) {
+            override fun onItemClicked(data: TourguideItem) {
+                isMessageButtonActive(false)
+                val validEmail = (data.email.toString()+"-1").replace(".","dot")
                 val fragment = ChatFragment()
                 val mBundle = Bundle()
-                mBundle.putString(ChatFragment.MESSAGES_PERSON,"4mLpFIu1pUf07BubkaVg1czWg6F3")
-                mBundle.putString(ChatFragment.MESSAGES_NAME,"Wildan Fajri Alfarabi A2001F0016")
-                mBundle.putString(ChatFragment.MESSAGES_URL,"https://lh3.googleusercontent.com/a-/AOh14GiCsrcPihgrO7BbYMNYC2YSNcqeGufLywA8FL6v=s96-c")
+                mBundle.putString(ChatFragment.MESSAGES_PERSON, validEmail)
+                mBundle.putString(ChatFragment.MESSAGES_NAME, data.nama)
+                mBundle.putString(ChatFragment.MESSAGES_URL, data.urlImage.toString())
                 mBundle.putString(ChatFragment.MESSAGES_TYPE,"tourguide")
                 fragment.arguments = mBundle
                 val fragmentManager = childFragmentManager.findFragmentByTag(ChatFragment::class.java.simpleName)
@@ -97,29 +127,27 @@ class ListTourGuideFragment : Fragment() {
         })
     }
 
-    private fun getDummyToguData():List<DummyTourGuideData>{
-        val imageUrlList = resources.getStringArray(R.array.tgUrl)
-        val nameList = resources.getStringArray(R.array.tgName)
-        val genderList = resources.getStringArray(R.array.tgGender)
-        val ratingList = resources.getStringArray(R.array.tgRating)
-        val priceList = resources.getStringArray(R.array.tgPrice)
-        val listTogu = ArrayList<DummyTourGuideData>()
-        for (i in nameList.indices){
-            listTogu.add(
-                DummyTourGuideData(
-                    tgUrl = imageUrlList[i],
-                    tgName = nameList[i],
-                    tgGender = genderList[i],
-                    tgRating = ratingList[i],
-                    tgPrice = priceList[i],
-                )
-            )
-        }
-        return listTogu
-    }
-
     private fun intentToMessageActivity(){
         val intent = Intent(activity,ChatListActivity::class.java)
         startActivity(intent)
+    }
+
+    private fun setUserProfileImage(url : String){
+        Glide.with(this)
+            .load(url)
+            .centerCrop()
+            .into(profile)
+    }
+
+    fun isMessageButtonActive(value : Boolean){
+        if (value)
+            msgButton.apply {
+                visibility = View.VISIBLE
+                isClickable = value
+            }
+        else msgButton.apply {
+            visibility = View.GONE
+            isClickable = value
+        }
     }
 }
