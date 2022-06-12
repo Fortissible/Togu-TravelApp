@@ -11,6 +11,8 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import com.bumptech.glide.Glide
+import com.example.togutravelapp.R
 import com.example.togutravelapp.data.CustomPassword
 import com.example.togutravelapp.data.DummyTourGuideData
 import com.example.togutravelapp.data.LoginForm
@@ -57,6 +59,11 @@ class LoginActivity : AppCompatActivity() {
             .requestIdToken("628388227660-f6smkp93dr5bn1ud9bh0neh58nn9n12h.apps.googleusercontent.com")
             .requestEmail()
             .build()
+
+        Glide.with(this)
+            .load(R.drawable.logo)
+            .centerCrop()
+            .into(binding.locationDetailImage)
 
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
@@ -162,7 +169,6 @@ class LoginActivity : AppCompatActivity() {
             loadingBar.visibility = View.INVISIBLE
             gmailLoginButton.visibility = View.VISIBLE
             val intent = Intent(this@LoginActivity, MainActivity::class.java)
-            intent.putExtra(TYPE,2)
             startActivity(intent)
             finish()
         } else {
@@ -175,7 +181,6 @@ class LoginActivity : AppCompatActivity() {
             loadingBar.visibility = View.INVISIBLE
             gmailLoginButton.visibility = View.VISIBLE
             val intent = Intent(this@LoginActivity, MainActivity::class.java)
-            intent.putExtra(TYPE,1)
             startActivity(intent)
             finish()
         } else {
@@ -231,6 +236,5 @@ class LoginActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "LoginActivity"
-        const val TYPE = "LoginType"
     }
 }
