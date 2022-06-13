@@ -6,7 +6,7 @@ import datetime
 import base64
 
 
-app = Flask(__name__)
+app = Flask(_name_)
 
 connection_name = ""
 db_name = ""
@@ -15,10 +15,11 @@ db_password = ""
 driver_name = ''
 query_string = dict({"unix_socket": "/cloudsql/{}".format(connection_name)})
 
+kode_rahasia = "gagasmanusiasilver"
 
 def generate_token(email):
     datenya = datetime.datetime.now()
-    result = (str(email)+str(datenya)+"gagasmanusiasilver").encode("ascii")
+    result = (str(email)+"|"+str(datenya)+"|"+kode_rahasia).encode("utf-8")
     bs64 = base64.b64encode(result)
     return bs64
 
@@ -35,6 +36,38 @@ db = sqlalchemy.create_engine(
       pool_timeout=30,
       pool_recycle=1800
     )
+
+@app.route("/getinfouser", methods=["POST", "GET"])
+def getinfouser():
+    table_name = 'user' 
+    if request.method == "POST":
+        req = request.get_json()
+        token = req['token']
+        
+        base64_bytes = token.encode('ascii')
+        message_bytes = base64.b64decode(base64_bytes)
+        decodedToken = message_bytes.decode('ascii')
+
+
+        splitToken = decodedToken.split("|")
+
+        if splitToken[-1] == kode_rahasia:
+            email = splitToken[0]
+        else:
+            return json.dumps({"error": "Wrong Token"})
+        
+
+        querysql = sqlalchemy.text('select * from {} where email = "{}"'.format(table_name, email))
+        try:
+            with db.connect() as conn:
+                result = conn.execute(querysql)
+                return json.dumps([dict(x) for x in result])
+
+        except Exception as e:                
+            return 'Error: {}'.format(str(e))
+    else:
+        return "Gunakan POST"
+    
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -69,13 +102,14 @@ def register():
         table_name = 'user'
         role = req['role']
         username = req['username']
+        gender = req['gender']
 
         if role == "guide":
             rating = 0
             harga = 0
-            querysql = sqlalchemy.text('insert into {} (email, password, nama, username, notelp, role, rating, harga) values ("{}", "{}", "{}", "{}", "{}", "{}", "{}", "{}")'.format(table_name, email, password, nama, username, notelp, role, rating, harga))
+            querysql = sqlalchemy.text('insert into {} (email, password, nama, username, notelp, role, rating, harga, gender) values ("{}", "{}", "{}", "{}", "{}", "{}", "{}", "{}", "{}")'.format(table_name, email, password, nama, username, notelp, role, rating, harga, gender))
         else:
-            querysql = sqlalchemy.text('insert into {} (email, password, nama, username, notelp, role) values ("{}", "{}", "{}", "{}", "{}", "{}")'.format(table_name, email, password, nama, username, notelp, role))
+            querysql = sqlalchemy.text('insert into {} (email, password, nama, username, notelp, role, gender) values ("{}", "{}", "{}", "{}", "{}", "{}", "{}")'.format(table_name, email, password, nama, username, notelp, role, gender))
 
         try:
             with db.connect() as conn:
@@ -130,9 +164,9 @@ def findtourguide():
         table_name = 'user' 
 
         if param:
-            querysql = sqlalchemy.text('select iduser, nama, notelp, rating, harga  from {} WHERE role = "guide" and nama LIKE "%{}%"'.format(table_name, param))
+            querysql = sqlalchemy.text('select iduser, nama, email ,notelp, rating, harga, gender, url_image  from {} WHERE role = "guide" and nama LIKE "%{}%"'.format(table_name, param))
         else:
-            querysql = sqlalchemy.text('select iduser, nama, notelp, rating, harga  from {} WHERE role = "guide"'.format(table_name))    
+            querysql = sqlalchemy.text('select iduser, nama, email ,notelp, rating, harga, gender, url_image  from {} WHERE role = "guide"'.format(table_name))    
         
         try:
             with db.connect() as conn:
@@ -146,5 +180,5 @@ def findtourguide():
 
 
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
