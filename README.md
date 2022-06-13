@@ -20,4 +20,4 @@ Figma : https://www.figma.com/file/gt3PskSfMNFUNxDiLOgGui/Togu-Travel-App?node-i
 Repo : https://github.com/wildanfajri1alfarabi/ToguTravelApp
 
 ## Presentation's Video
-Repo : https://www.youtube.com/watch?v=GXz9Yd6EWXg
+Youtube Link : https://www.youtube.com/watch?v=GXz9Yd6EWXg
